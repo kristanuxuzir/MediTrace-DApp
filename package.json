@@ -1,0 +1,18 @@
+{
+  "name": "blockchain-assignment",
+  "version": "1.0.0",
+  "description": "MediTrace - Pharmaceutical Authenticity & Batch Recall Registry",
+  "scripts": {
+    "start": "serve frontend -l 3000",
+    "compile": "hardhat compile",
+    "test": "hardhat test"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^5.0.0",
+    "hardhat": "^2.22.18",
+    "serve": "^14.2.4"
+  }
+}

@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MediTrace | Decentralized Pharmaceutical Authenticity & Recall Registry</title>
+  <link rel="stylesheet" href="style.css">
+  <!-- Google Fonts for clean medical/tech typography -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+  <!-- Top Navigation & Wallet Bar -->
+  <header class="app-header">
+    <div class="header-container">
+      <div class="brand">
+        <div class="brand-icon">💊</div>
+        <div>
+          <h1>MediTrace</h1>
+          <p class="tagline">Decentralized Pharmaceutical Provenance & Batch Recall System</p>
+        </div>
+      </div>
+
+      <div class="wallet-controls">
+        <div class="wallet-badge network-badge" id="networkBadge">
+          <span class="status-dot disconnected"></span>
+          <span id="networkName">Network: Not Connected</span>
+        </div>
+
+        <div class="wallet-badge account-badge" id="accountBadge">
+          <span id="accountAddress">Wallet: Not Connected</span>
+          <span id="roleBadge" class="role-pill hidden">Public</span>
+        </div>
+
+        <button id="connectWalletBtn" class="btn btn-primary">
+          Connect MetaMask
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="main-container">
+    <!-- Notice Banner for placeholder address -->
+    <div id="configNotice" class="alert-banner alert-warning hidden">
+      ⚠️ <strong>Notice:</strong> Using placeholder contract address in <code>frontend/contractConfig.js</code>. 
+      Deploy the contract in Remix IDE (with Ganache or Sepolia) and update <code>CONTRACT_ADDRESS</code> to enable live blockchain interactions.
+    </div>
+
+    <!-- Live Platform Statistics -->
+    <section class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-icon">📦</div>
+        <div>
+          <span class="stat-label">Total Batches Registered</span>
+          <h3 id="statTotalBatches">0</h3>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon alert-icon">🚨</div>
+        <div>
+          <span class="stat-label">Active Recalls</span>
+          <h3 id="statTotalRecalls">0</h3>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">🏛️</div>
+        <div>
+          <span class="stat-label">Regulatory Authority</span>
+          <h3 id="statOwnerAddress" class="truncate-text">Not Loaded</h3>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">📜</div>
+        <div>
+          <span class="stat-label">Contract Address</span>
+          <h3 id="statContractAddress" class="truncate-text">Not Set</h3>
+        </div>
+      </div>
+    </section>
+
+    <!-- Global Toast / Transaction Status -->
+    <div id="txStatusBox" class="tx-status-box hidden">
+      <div id="txStatusIcon" class="tx-icon">⏳</div>
+      <div class="tx-content">
+        <h4 id="txStatusTitle">Processing Transaction</h4>
+        <p id="txStatusMessage">Waiting for confirmation...</p>
+        <span id="txStatusHash" class="tx-hash"></span>
+      </div>
+      <button id="closeTxStatusBtn" class="close-btn">&times;</button>
+    </div>
+
+    <!-- TAB NAVIGATION -->
+    <div class="tabs-nav">
+      <button class="tab-btn active" data-tab="tab-verify">🔍 Verify Medicine</button>
+      <button class="tab-btn" data-tab="tab-manufacturer">🏭 Manufacturer Portal</button>
+      <button class="tab-btn" data-tab="tab-regulator">⚖️ Regulatory Authority</button>
+      <button class="tab-btn" data-tab="tab-ledger">📋 On-Chain Ledger</button>
+    </div>
+
+    <!-- TAB 1: Public Verification Portal -->
+    <section id="tab-verify" class="tab-pane active">
+      <div class="panel">
+        <div class="panel-header">
+          <h2>Public Drug Authenticity & Recall Verification</h2>
+          <p>Instant, gas-free verification of any medicine batch against the immutable Ethereum registry.</p>
+        </div>
+
+        <div class="search-bar">
+          <input type="text" id="verifyBatchIdInput" placeholder="Enter Batch ID (e.g., LOT-2026-001)" />
+          <button id="verifyBatchBtn" class="btn btn-primary">Verify Batch</button>
+        </div>
+
+        <!-- Verification Result Card -->
+        <div id="verificationResult" class="verification-result hidden">
+          <!-- Dynamic verification banner will be injected here -->
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 2: Manufacturer Portal -->
+    <section id="tab-manufacturer" class="tab-pane">
+      <div class="panel">
+        <div class="panel-header">
+          <h2>Register Production Batch</h2>
+          <p>Restricted to authorized pharmaceutical manufacturers. Requires wallet signature via MetaMask.</p>
+        </div>
+
+        <div id="mfrAccessNotice" class="access-notice hidden">
+          ⚠️ <strong>Access Restricted:</strong> Your connected wallet is not recognized as an authorized manufacturer. 
+          The contract owner/regulator must first call <code>authorizeManufacturer()</code> with your address.
+        </div>
+
+        <form id="registerBatchForm" class="form-grid">
+          <div class="form-group">
+            <label for="batchId">Batch Identifier (Unique) *</label>
+            <input type="text" id="batchId" required placeholder="e.g., LOT-2026-001" />
+            <small class="form-hint">Unique alphanumeric code printed on drug packaging.</small>
+          </div>
+
+          <div class="form-group">
+            <label for="medicineName">Generic / Chemical Name *</label>
+            <input type="text" id="medicineName" required placeholder="e.g., Amoxicillin 500mg Capsule" />
+          </div>
+
+          <div class="form-group">
+            <label for="brandName">Trade / Brand Name *</label>
+            <input type="text" id="brandName" required placeholder="e.g., Amoxil" />
+          </div>
+
+          <div class="form-group">
+            <label for="unitCount">Production Quantity (Units) *</label>
+            <input type="number" id="unitCount" min="1" required placeholder="e.g., 50000" />
+          </div>
+
+          <div class="form-group">
+            <label for="expiryDate">Expiration Date *</label>
+            <input type="date" id="expiryDate" required />
+            <small class="form-hint">Must be a date in the future.</small>
+          </div>
+
+          <div class="form-group">
+            <label for="complianceCertHash">QC Lab Certificate Hash / IPFS CID *</label>
+            <input type="text" id="complianceCertHash" required placeholder="e.g., QmZtmD2qtWBSgaWumtL48j3m9L7m... or SHA-256" />
+          </div>
+
+          <div class="form-actions full-width">
+            <button type="submit" id="submitRegisterBatchBtn" class="btn btn-success">
+              ✍️ Sign & Register Batch On-Chain
+            </button>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <!-- TAB 3: Regulatory Authority Portal -->
+    <section id="tab-regulator" class="tab-pane">
+      <div class="grid-2-col">
+        <!-- Authorize Manufacturer -->
+        <div class="panel">
+          <div class="panel-header">
+            <h3>Authorize Manufacturer</h3>
+            <p>Grant drug production registration rights to a licensed pharmaceutical company.</p>
+          </div>
+
+          <form id="authorizeMfrForm" class="form-stack">
+            <div class="form-group">
+              <label for="authMfrAddress">Manufacturer Wallet Address *</label>
+              <input type="text" id="authMfrAddress" required placeholder="0x..." />
+            </div>
+
+            <div class="form-group">
+              <label for="authMfrName">Company / Laboratory Name *</label>
+              <input type="text" id="authMfrName" required placeholder="e.g., Pfizer Global Manufacturing" />
+            </div>
+
+            <button type="submit" class="btn btn-primary">Grant Authorization</button>
+          </form>
+        </div>
+
+        <!-- Revoke Manufacturer -->
+        <div class="panel">
+          <div class="panel-header">
+            <h3>Revoke Manufacturer</h3>
+            <p>Revoke batch registration credentials for non-compliant entities.</p>
+          </div>
+
+          <form id="revokeMfrForm" class="form-stack">
+            <div class="form-group">
+              <label for="revokeMfrAddress">Manufacturer Wallet Address *</label>
+              <input type="text" id="revokeMfrAddress" required placeholder="0x..." />
+            </div>
+
+            <button type="submit" class="btn btn-danger">Revoke Authorization</button>
+          </form>
+        </div>
+      </div>
+
+      <!-- Emergency Recall Panel -->
+      <div class="panel mt-20">
+        <div class="panel-header">
+          <h3 class="text-danger">🚨 Emergency Batch Recall</h3>
+          <p>Initiate an immediate safety recall for a compromised or defective batch. Callable by the regulator or the originating manufacturer.</p>
+        </div>
+
+        <form id="recallBatchForm" class="form-grid">
+          <div class="form-group">
+            <label for="recallBatchId">Batch ID to Recall *</label>
+            <input type="text" id="recallBatchId" required placeholder="e.g., LOT-2026-001" />
+          </div>
+
+          <div class="form-group">
+            <label for="recallReason">Official Recall Justification *</label>
+            <input type="text" id="recallReason" required placeholder="e.g., Glass particulate contamination reported in sample testing" />
+          </div>
+
+          <div class="form-actions full-width">
+            <button type="submit" class="btn btn-danger">
+              ⚠️ Issue Public On-Chain Recall
+            </button>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <!-- TAB 4: Live Ledger -->
+    <section id="tab-ledger" class="tab-pane">
+      <div class="panel">
+        <div class="panel-header flex-between">
+          <div>
+            <h2>On-Chain Medicine Registry Ledger</h2>
+            <p>Complete real-time record of all batches currently committed to the blockchain.</p>
+          </div>
+          <button id="refreshLedgerBtn" class="btn btn-secondary">🔄 Refresh Data</button>
+        </div>
+
+        <div class="table-responsive">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Batch ID</th>
+                <th>Medicine</th>
+                <th>Brand</th>
+                <th>Manufacturer</th>
+                <th>Expiry Date</th>
+                <th>Units</th>
+                <th>Status</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="ledgerTableBody">
+              <tr>
+                <td colspan="8" class="text-center text-muted">No batches loaded or wallet not connected.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="app-footer">
+    <p>MediTrace DApp &bull; CSE4444 Blockchain Technology Assignment 2 &bull; Ethereum Smart Contract System</p>
+  </footer>
+
+  <!-- Ethers.js v6 UMD CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.13.2/ethers.umd.min.js"></script>
+  <!-- Contract Configuration (Address & ABI) -->
+  <script src="contractConfig.js"></script>
+  <!-- Frontend Logic & MetaMask Integration -->
+  <script src="app.js"></script>
+</body>
+</html>
